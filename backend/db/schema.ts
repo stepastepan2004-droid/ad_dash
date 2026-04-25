@@ -37,17 +37,3 @@ export const campaigns = pgTable('campaigns', {
 
 export type Campaign = typeof campaigns.$inferSelect
 export type NewCampaign = typeof campaigns.$inferInsert
-
-// Budget plans for plan/fact comparison
-export const budgetPlans = pgTable('budget_plans', {
-  id: serial('id').primaryKey(),
-  promotionType: text('promotion_type').notNull(), // 'product' | 'media'
-  budgetPlan: doublePrecision('budget_plan').notNull().default(0),
-  impressionsPlan: integer('impressions_plan').notNull().default(0),
-  clicksPlan: integer('clicks_plan').notNull().default(0),
-  reachPlan: integer('reach_plan').notNull().default(0),
-  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
-  updatedAt: timestamp('updated_at', { withTimezone: true }),
-}, (table) => [
-  uniqueIndex('budget_plans_promo_idx').on(table.promotionType),
-])

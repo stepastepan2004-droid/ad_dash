@@ -15,6 +15,13 @@
       "when": 1775921261961,
       "tag": "0001_round_marvex",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1777138253564,
+      "tag": "0002_friendly_luke_cage",
+      "breakpoints": true
     }
   ]
 }

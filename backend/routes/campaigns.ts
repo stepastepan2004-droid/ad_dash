@@ -1,7 +1,15 @@
 import { Elysia } from 'elysia'
 import { and, count, desc, eq, gte, lte, sql } from 'drizzle-orm'
 import { db } from '../db'
-import { campaigns, budgetPlans } from '../db/schema'
+import { campaigns } from '../db/schema'
+
+function toNumber(value: unknown): number {
+  return Number(value ?? 0)
+}
+
+function toNullableNumber(value: unknown): number | null {
+  return value == null ? null : Number(value)
+}
 
 function buildWhere(query: Record<string, string | undefined>) {
   const { promotionType, platform, type, periodFrom, periodTo, period } = query
@@ -52,17 +60,17 @@ export const campaignRoutes = new Elysia()
 
     try {
       const rows = await db.select({
-        totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`,
-        totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`,
-        totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`,
-        avgCtr: sql<number | null>`case when sum(${campaigns.impressions}) > 0 then round((sum(${campaigns.clicks})::numeric / sum(${campaigns.impressions})::numeric * 100), 2) else null end`,
-        avgCpc: sql<number | null>`case when sum(${campaigns.clicks}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.clicks})::numeric), 2) else null end`,
-        totalLeads: sql<number | null>`sum(${campaigns.leads})`,
-        totalRevenue: sql<number | null>`sum(${campaigns.revenue})`,
-        totalReach: sql<number | null>`sum(${campaigns.reach})`,
-        avgCpm: sql<number | null>`case when sum(${campaigns.impressions}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.impressions})::numeric * 1000), 2) else null end`,
-        avgDrr: sql<number | null>`case when sum(${campaigns.revenue}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.revenue})::numeric * 100), 2) else null end`,
-        campaignCount: sql<number>`count(distinct ${campaigns.campaignName})`,
+        totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`.mapWith(toNumber),
+        totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`.mapWith(toNumber),
+        totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`.mapWith(toNumber),
+        avgCtr: sql<number | null>`case when sum(${campaigns.impressions}) > 0 then round((sum(${campaigns.clicks})::numeric / sum(${campaigns.impressions})::numeric * 100), 2) else null end`.mapWith(toNullableNumber),
+        avgCpc: sql<number | null>`case when sum(${campaigns.clicks}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.clicks})::numeric), 2) else null end`.mapWith(toNullableNumber),
+        totalLeads: sql<number | null>`sum(${campaigns.leads})`.mapWith(toNullableNumber),
+        totalRevenue: sql<number | null>`sum(${campaigns.revenue})`.mapWith(toNullableNumber),
+        totalReach: sql<number | null>`sum(${campaigns.reach})`.mapWith(toNullableNumber),
+        avgCpm: sql<number | null>`case when sum(${campaigns.impressions}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.impressions})::numeric * 1000), 2) else null end`.mapWith(toNullableNumber),
+        avgDrr: sql<number | null>`case when sum(${campaigns.revenue}) > 0 then round((sum(${campaigns.spend})::numeric / sum(${campaigns.revenue})::numeric * 100), 2) else null end`.mapWith(toNullableNumber),
+        campaignCount: sql<number>`count(distinct ${campaigns.campaignName})`.mapWith(toNumber),
       }).from(campaigns).where(where)
 
       return rows[0]
@@ -81,12 +89,12 @@ export const campaignRoutes = new Elysia()
 
     return await db.select({
       period: campaigns.period,
-      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`,
-      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`,
-      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`,
-      totalReach: sql<number>`coalesce(sum(${campaigns.reach}), 0)`,
-      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`,
-      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`,
+      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`.mapWith(toNumber),
+      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`.mapWith(toNumber),
+      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`.mapWith(toNumber),
+      totalReach: sql<number>`coalesce(sum(${campaigns.reach}), 0)`.mapWith(toNumber),
+      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`.mapWith(toNumber),
+      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`.mapWith(toNumber),
     }).from(campaigns).where(where).groupBy(campaigns.period).orderBy(campaigns.period)
   })
 
@@ -96,9 +104,9 @@ export const campaignRoutes = new Elysia()
 
     return await db.select({
       platform: campaigns.platform,
-      totalSpend: sql<number>`sum(${campaigns.spend})`,
-      totalClicks: sql<number>`sum(${campaigns.clicks})`,
-      totalImpressions: sql<number>`sum(${campaigns.impressions})`,
+      totalSpend: sql<number>`sum(${campaigns.spend})`.mapWith(toNumber),
+      totalClicks: sql<number>`sum(${campaigns.clicks})`.mapWith(toNumber),
+      totalImpressions: sql<number>`sum(${campaigns.impressions})`.mapWith(toNumber),
     }).from(campaigns).where(where).groupBy(campaigns.platform)
   })
 
@@ -108,9 +116,9 @@ export const campaignRoutes = new Elysia()
 
     return await db.select({
       campaignType: campaigns.campaignType,
-      totalSpend: sql<number>`sum(${campaigns.spend})`,
-      totalClicks: sql<number>`sum(${campaigns.clicks})`,
-      totalImpressions: sql<number>`sum(${campaigns.impressions})`,
+      totalSpend: sql<number>`sum(${campaigns.spend})`.mapWith(toNumber),
+      totalClicks: sql<number>`sum(${campaigns.clicks})`.mapWith(toNumber),
+      totalImpressions: sql<number>`sum(${campaigns.impressions})`.mapWith(toNumber),
     }).from(campaigns).where(where).groupBy(campaigns.campaignType)
   })
 
@@ -161,12 +169,12 @@ export const campaignRoutes = new Elysia()
 
     return await db.select({
       period: periodExpr.as('period'),
-      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`,
-      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`,
-      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`,
-      totalReach: sql<number>`coalesce(sum(${campaigns.reach}), 0)`,
-      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`,
-      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`,
+      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`.mapWith(toNumber),
+      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`.mapWith(toNumber),
+      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`.mapWith(toNumber),
+      totalReach: sql<number>`coalesce(sum(${campaigns.reach}), 0)`.mapWith(toNumber),
+      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`.mapWith(toNumber),
+      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`.mapWith(toNumber),
     }).from(campaigns).where(where).groupBy(periodExpr).orderBy(periodExpr)
   })
 
@@ -188,46 +196,12 @@ export const campaignRoutes = new Elysia()
     return await db.select({
       period: periodExpr.as('period'),
       platform: campaigns.platform,
-      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`,
-      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`,
-      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`,
+      totalSpend: sql<number>`coalesce(sum(${campaigns.spend}), 0)`.mapWith(toNumber),
+      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`.mapWith(toNumber),
+      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`.mapWith(toNumber),
     }).from(campaigns).where(where)
       .groupBy(periodExpr, campaigns.platform)
       .orderBy(periodExpr)
-  })
-
-  // Budget plans CRUD
-  .get('/api/budget-plans', async ({ query }) => {
-    const promotionType = (query as Record<string, string | undefined>).promotionType
-    if (!promotionType) return null
-    const rows = await db.select().from(budgetPlans).where(eq(budgetPlans.promotionType, promotionType))
-    return rows[0] ?? null
-  })
-
-  .post('/api/budget-plans', async ({ body }) => {
-    const data = body as {
-      promotionType: string
-      budgetPlan: number
-      impressionsPlan: number
-      clicksPlan: number
-      reachPlan: number
-    }
-    if (!data.promotionType) return { success: false, error: 'promotionType required' }
-
-    await db.insert(budgetPlans)
-      .values(data)
-      .onConflictDoUpdate({
-        target: [budgetPlans.promotionType],
-        set: {
-          budgetPlan: sql`excluded.budget_plan`,
-          impressionsPlan: sql`excluded.impressions_plan`,
-          clicksPlan: sql`excluded.clicks_plan`,
-          reachPlan: sql`excluded.reach_plan`,
-          updatedAt: sql`now()`,
-        },
-      })
-
-    return { success: true }
   })
 
   // Funnel data (product only)
@@ -235,11 +209,11 @@ export const campaignRoutes = new Elysia()
     const where = buildWhere(query as Record<string, string | undefined>)
 
     const rows = await db.select({
-      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`,
-      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`,
-      totalAddToCart: sql<number>`coalesce(sum(${campaigns.addToCart}), 0)`,
-      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`,
-      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`,
+      totalImpressions: sql<number>`coalesce(sum(${campaigns.impressions}), 0)`.mapWith(toNumber),
+      totalClicks: sql<number>`coalesce(sum(${campaigns.clicks}), 0)`.mapWith(toNumber),
+      totalAddToCart: sql<number>`coalesce(sum(${campaigns.addToCart}), 0)`.mapWith(toNumber),
+      totalLeads: sql<number>`coalesce(sum(${campaigns.leads}), 0)`.mapWith(toNumber),
+      totalRevenue: sql<number>`coalesce(sum(${campaigns.revenue}), 0)`.mapWith(toNumber),
     }).from(campaigns).where(where)
 
     return rows[0]
@@ -269,10 +243,10 @@ export const campaignRoutes = new Elysia()
       db.select({
         campaignName: campaigns.campaignName,
         platform: campaigns.platform,
-        value: sql<number>`sum(${col})`,
-        spend: sql<number>`sum(${campaigns.spend})`,
-        clicks: sql<number>`sum(${campaigns.clicks})`,
-        impressions: sql<number>`sum(${campaigns.impressions})`,
+        value: sql<number>`sum(${col})`.mapWith(toNumber),
+        spend: sql<number>`sum(${campaigns.spend})`.mapWith(toNumber),
+        clicks: sql<number>`sum(${campaigns.clicks})`.mapWith(toNumber),
+        impressions: sql<number>`sum(${campaigns.impressions})`.mapWith(toNumber),
       })
         .from(campaigns)
         .where(where)
@@ -283,10 +257,10 @@ export const campaignRoutes = new Elysia()
       db.select({
         campaignName: campaigns.campaignName,
         platform: campaigns.platform,
-        value: sql<number>`sum(${col})`,
-        spend: sql<number>`sum(${campaigns.spend})`,
-        clicks: sql<number>`sum(${campaigns.clicks})`,
-        impressions: sql<number>`sum(${campaigns.impressions})`,
+        value: sql<number>`sum(${col})`.mapWith(toNumber),
+        spend: sql<number>`sum(${campaigns.spend})`.mapWith(toNumber),
+        clicks: sql<number>`sum(${campaigns.clicks})`.mapWith(toNumber),
+        impressions: sql<number>`sum(${campaigns.impressions})`.mapWith(toNumber),
       })
         .from(campaigns)
         .where(where)
